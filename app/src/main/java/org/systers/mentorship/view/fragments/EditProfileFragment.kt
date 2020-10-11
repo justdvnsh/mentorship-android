@@ -1,9 +1,12 @@
 package org.systers.mentorship.view.fragments
 
 
+import android.app.Activity.RESULT_OK
 import android.app.Dialog
 import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,9 +20,11 @@ import androidx.lifecycle.ViewModelProviders
 import org.systers.mentorship.R
 import org.systers.mentorship.databinding.FragmentEditProfileBinding
 import org.systers.mentorship.models.User
+import org.systers.mentorship.utils.Constants.PICK_IMAGE_REQUEST
 import org.systers.mentorship.utils.EditProfileFragmentErrorStates
 import org.systers.mentorship.view.activities.MainActivity
 import org.systers.mentorship.viewmodels.ProfileViewModel
+import java.io.IOException
 
 /**
  * The fragment is responsible for editing the User's profile
@@ -68,6 +73,7 @@ class EditProfileFragment : DialogFragment() {
         editProfileBinding = DataBindingUtil.inflate(LayoutInflater.from(context),
                 R.layout.fragment_edit_profile, null, false)
 
+        editProfileBinding.imgUserAvatar.setOnClickListener {selectImage()}
         editProfileBinding.user = tempUser.copy()
         currentUser = tempUser.copy()
 
@@ -149,6 +155,32 @@ class EditProfileFragment : DialogFragment() {
         super.onDismiss(dialog)
         if (onDismissListener != null) {
             onDismissListener.onDismiss(dialog)
+        }
+    }
+
+    // creates an intent to choose the image
+    private fun selectImage() {
+        val intent = Intent().apply {
+            type = "image/*"
+            action = Intent.ACTION_GET_CONTENT
+        }
+        startActivityForResult(Intent.createChooser(intent, "Select your image"), PICK_IMAGE_REQUEST)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.data != null) {
+            val filePath = data.data
+            filePath?.let {
+                try {
+                    val bitmap = MediaStore.Images.Media.getBitmap(requireActivity().contentResolver, filePath)
+                    editProfileBinding.imgUserAvatar.setImageBitmap(bitmap)
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+            }
+        } else {
+            Toast.makeText(requireContext(), "Soemthing Went Wrong", Toast.LENGTH_SHORT).show()
         }
     }
 }
